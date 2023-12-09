@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rating Widget</title>
+    <style>
+        :root{
+            --unselected-star: lightgray;
+            --selected-star: black;
+        }
+    </style>
+</head>
+<body>
+    <rating-widget>
+        <form action = "https://httpbin.org/post" method="POST">
+            <label for = "rating">How satisfied are you?</label>
+            <input type = "hidden" name = "question" value = "How satisfied are you?">
+            <input type = "hidden" name = "sentBy" value = "HTML">
+            <input type = "number" id = "rating" name="rating" min="1" max="5" value="0" required>
+            <button type = "submit">Submit</button>
+        </form>
+    </rating-widget>
+    <a href = "weather-widget.html" style = "margin-top:10rem; display:block">Weather Widget Demo</a>
+
+    <script type = "module">
+        window.addEventListener('DOMContentLoaded', init);
+        let widgetRoot;
+        let starValue;
+        
+        //Entire Page Initialization
+        function init(){
+            starValue = 0;
+            widgetRoot = document.querySelector("rating-widget").shadowRoot;
+            const allStars = widgetRoot.querySelectorAll(".star");
+            allStars.forEach((star)=>{
+               star.addEventListener("click",submitRating);
+            });
+            
+        }
+
+        function submitRating(){
+            const maxStars = document.querySelector("#rating").max;
+            starValue= this.getAttribute('data-value');
+            const percent = starValue/maxStars
+            console.log(`Submitted rating of ${starValue}/${maxStars} = ${percent}`)
+            if(percent < .8){
+            widgetRoot.innerHTML = `
+                <h1>Rating Widget</h1>
+                <span>Thanks for your feedback of ${starValue} stars. We'll try to do better!</span>
+                `;
+            }
+            else{
+                widgetRoot.innerHTML = `
+                    <h1>Rating Widget</h1>
+                    <span>Thanks for the ${starValue} stars rating!</span>
+                    `;
+            }
+
+            const formData = new FormData();
+            formData.append('question', 'How satisfied are you?');
+            formData.append('rating', starValue);
+            formData.append('sentBy', 'JS');
+
+            fetch('https://httpbin.org/post', {
+                method: 'POST',
+                headers: {
+                    'X-Sent-By': 'JS'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data); 
+            })
+            .catch(error => {
+                console.error('Error:', error); 
+            });
+        }
+   
+        class RatingWidget extends HTMLElement{
+            //Widget Initialization
+            constructor(){
+                super();
+                this.attachShadow({mode:'open'});
+                console.log(`Constructed : `, this);
+            }
+
+            connectedCallback() {
+                const maxStars = document.querySelector("#rating").max;
+                let starTags = "";
+                for (let i = maxStars; i > 0; i--) {
+                    starTags += `<span class='star' data-value=${i}>★</span>`;
+                    console.log(i);
+                }
+                this.shadowRoot.innerHTML=`
+                    <style>
+                        h1{
+                            margin-bottom: 0;
+                        }
+                        .star{
+                            color:var(--unselected-star,lightgray);
+                            font-size: 3rem;
+                        }
+                        .star:hover,.star:hover~.star{
+                            color: var(--selected-star,black);
+                            cursor:pointer;
+                        }
+                        #stars{
+                            display:flex;
+                            flex-direction: row-reverse;
+                            justify-content: flex-end;
+                        }
+                    </style>
+                    <h1>Rating Widget</h1>
+                    <div id = 'stars'>
+                        ${starTags}
+                    </div>
+                `;
+			    console.log(`Connected :`, this);
+		    }
+
+		    disconnectedCallback() {
+			    console.log(`Disconnected :`, this);
+		    }
+        }
+
+        customElements.define('rating-widget', RatingWidget);
+    </script>
+</body>
+</html>
